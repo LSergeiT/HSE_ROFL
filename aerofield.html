@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AeroField — ДЕМО · разведка полей дроном</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--bg:#0e1913;--card:#173025;--ink:#eef6ee;--mut:#9bb2a3;--mint:#4cc38a;--line:rgba(238,246,238,.12);--amber:#f2b633;--red:#ef6a5e}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:500 14px/1.5 Manrope,system-ui,"Segoe UI",sans-serif}
+.mono{font-family:"JetBrains Mono",Consolas,monospace}
+#map{position:absolute;inset:0;background:var(--bg)}
+.glass{position:absolute;z-index:800;background:rgba(14,25,19,.86);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:28px}
+.panel{left:16px;top:16px;bottom:164px;width:372px;display:flex;flex-direction:column;overflow:hidden}
+.ph{padding:20px 22px 14px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.03em;margin-bottom:14px}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;color:var(--ink);padding:10px 16px;font:500 13px Manrope,sans-serif;outline:none}
+.search input:focus{border-color:var(--mint)}
+.btn{border:0;border-radius:999px;padding:10px 18px;background:var(--mint);color:#08150e;font:800 13px Manrope,sans-serif;cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.1)}.btn.o{background:none;border:1.5px solid var(--line);color:var(--ink)}.btn.o.on{border-color:var(--mint);color:var(--mint)}
+.tabs{display:flex;gap:6px;padding:0 22px 12px}
+.tabs button{flex:1;border:0;border-radius:999px;padding:8px;background:none;color:var(--mut);font:700 13px Manrope,sans-serif;cursor:pointer}
+.tabs button.on{background:rgba(76,195,138,.16);color:var(--mint)}
+.body{flex:1;overflow-y:auto;padding:4px 22px 22px}
+.tab{display:none}.tab.on{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.cell{background:rgba(255,255,255,.05);border-radius:18px;padding:12px 14px}.cell small{display:block;color:var(--mut);font-size:11px}.cell b{font-size:23px;font-weight:800;letter-spacing:-.03em}
+.sl{margin-bottom:14px}.sl div{display:flex;justify-content:space-between;color:var(--mut);font-size:12px;margin-bottom:4px}.sl b{color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--mint)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.note{color:var(--mut);font-size:12px;margin-top:14px}
+.hw{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.05);margin-bottom:8px;cursor:pointer}
+.hw:hover{background:rgba(76,195,138,.12)}.hw i{width:12px;height:12px;border-radius:50%}.hw span{margin-left:auto;color:var(--mut)}
+.fl{border-radius:16px;padding:10px 14px;font-weight:700;margin:12px 0}
+.ok{background:rgba(76,195,138,.16);color:var(--mint)}.wr{background:rgba(242,182,51,.16);color:var(--amber)}.bd{background:rgba(239,106,94,.16);color:var(--red)}
+.days{display:flex;text-align:center;color:var(--mut);font-size:11px}.days div{flex:1}.days span{display:block;font-size:20px}
+.top{right:16px;top:16px;padding:6px;display:flex;gap:4px;border-radius:999px}
+.top button{border:0;background:none;color:var(--mut);font:700 13px Manrope,sans-serif;padding:8px 16px;border-radius:999px;cursor:pointer}.top button.on{background:var(--mint);color:#08150e}
+.dock{left:404px;right:16px;bottom:16px;height:136px;padding:12px;display:flex;gap:12px;border-radius:28px}
+.ft{flex:1;min-width:0;position:relative;border-radius:18px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:.2s;background:#244d2b}
+.ft.hl,.ft:hover{border-color:var(--mint)}
+.ft canvas{width:100%;height:100%;display:block;object-fit:cover}
+.ft video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.dm{font:800 11px "JetBrains Mono",monospace;letter-spacing:.12em;background:var(--amber);color:#1a1200;border-radius:999px;padding:3px 10px;font-style:normal}
+.demo{position:fixed;z-index:900;left:50%;top:18px;transform:translateX(-50%);font-size:15px;padding:7px 22px;box-shadow:0 6px 24px rgba(242,182,51,.35)}
+.ft b{position:absolute;top:8px;right:8px;z-index:2;font:800 10px "JetBrains Mono",monospace;letter-spacing:.12em;background:var(--amber);color:#1a1200;border-radius:999px;padding:2px 9px}
+.ft span{position:absolute;left:8px;bottom:6px;font:700 10px "JetBrains Mono",monospace;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:999px}
+.leaflet-popup-content-wrapper{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:18px}.leaflet-popup-tip{background:var(--bg)}
+.leaflet-popup-content{font-family:Manrope,sans-serif;margin:14px 16px}
+.leaflet-control-attribution{background:rgba(14,25,19,.7)!important;color:var(--mut)!important}.leaflet-control-attribution a{color:var(--mint)!important}
+.leaflet-bottom.leaflet-right{margin-bottom:150px}
+.drop{display:block;border:2px dashed var(--line);border-radius:22px;padding:22px 14px;text-align:center;color:var(--mut);cursor:pointer;transition:.15s;margin-bottom:12px}.drop:hover,.drop.ov{border-color:var(--mint);color:var(--mint)}
+.code{font:500 11px/1.5 "JetBrains Mono",monospace;background:rgba(255,255,255,.06);border-radius:14px;padding:10px 12px;color:var(--mint);word-break:break-all;margin:8px 0}
+.st{font-weight:700;font-size:12px;margin:8px 0}
+#res{width:100%;border-radius:18px;display:none;margin:10px 0}
+#toast{position:fixed;left:50%;top:22px;transform:translate(-50%,-90px);background:var(--ink);color:var(--bg);padding:10px 22px;border-radius:999px;font-weight:800;z-index:2000;transition:.3s}#toast.on{transform:translate(-50%,0)}
+@media(max-width:900px){.demo{top:auto;bottom:178px;left:16px;transform:none}.panel{right:16px;width:auto;bottom:auto;max-height:50vh}.dock{left:16px;bottom:16px;overflow-x:auto}.ft{min-width:150px}.top{top:auto;bottom:170px;right:16px}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="glass panel">
+  <div class="ph">
+    <div class="logo"><svg width="32" height="32" viewBox="0 0 34 34"><rect width="34" height="34" rx="11" fill="#4cc38a"/><path d="M17 7l9 5v10l-9 5-9-5V12z" fill="none" stroke="#08150e" stroke-width="2.2" stroke-linejoin="round"/><circle cx="17" cy="17" r="3" fill="#08150e"/></svg>AeroField<em class="dm">ДЕМО</em></div>
+    <div class="search"><input id="q" placeholder="Город, село или «52.17, 20.53»"><button class="btn" id="go">Найти</button></div>
+  </div>
+  <div class="tabs"><button class="on" data-t="0">Маршрут</button><button data-t="1">Очаги</button><button data-t="2">Погода</button></div>
+  <div class="body">
+    <div class="tab on">
+      <div class="g2"><div class="cell"><small>путь, м</small><b class="mono" id="rD">—</b></div><div class="cell"><small>полёт, мин</small><b class="mono" id="rT">—</b></div><div class="cell"><small>полос</small><b class="mono" id="rS">—</b></div><div class="cell"><small>поле, га</small><b class="mono" id="rA">—</b></div></div>
+      <div class="sl"><div>Ширина захвата, м <b id="vS">15</b></div><input type="range" id="sS" min="6" max="40" value="15"></div>
+      <div class="sl"><div>Перекрытие полос, % <b id="vO">20</b></div><input type="range" id="sO" min="5" max="60" value="20"></div>
+      <div class="sl"><div>Скорость, м/с <b id="vV">8</b></div><input type="range" id="sV" min="3" max="15" value="8"></div>
+      <div class="row"><button class="btn o" id="draw">✎ Нарисовать поле</button><button class="btn" id="done" style="display:none">Готово ✓</button><button class="btn o" id="cp">Копировать точки</button></div>
+      <p class="note">Контур по умолчанию — пример на полях Мазовии. Найдите своё поле через поиск и обведите его вручную: маршрут пересчитается сразу.</p>
+    </div>
+    <div class="tab"><div class="g2"><div class="cell"><small>очагов</small><b class="mono" id="hN">—</b></div><div class="cell"><small>площадь, м²</small><b class="mono" id="hA">—</b></div></div><div id="hl"></div><p class="note">Очаги — демонстрационные данные, расставленные вдоль маршрута. Кадры внизу — ваши видео video_2…video_5.mp4 (если файлы не найдены, показывается спутниковый кадр).</p></div>
+    <div class="tab"><div class="wx" style="display:flex;gap:14px;align-items:center"><span id="wI" style="font-size:44px">⛅</span><div><div class="mono" id="wT" style="font-size:40px;font-weight:700;line-height:1">—°</div><small id="wD" style="color:var(--mut)">Загрузка…</small></div></div>
+      <div class="g2" style="margin-top:14px"><div class="cell"><small>ветер, км/ч</small><b class="mono" id="wW">—</b></div><div class="cell"><small>влажность, %</small><b class="mono" id="wH">—</b></div></div>
+      <div class="fl" id="ft">Оценка условий…</div><div class="days" id="wd"></div></div>
+  </div>
+</div>
+
+<div class="glass top"><button class="on" data-l="sat">Спутник</button><button data-l="sch">Схема</button></div>
+<div class="glass dock" id="dock"></div>
+<div class="dm demo">ДЕМО</div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),rng=s=>()=>(s=(s*16807)%2147483647)/2147483647;
+const DEF=[[52.1727,20.5262],[52.1730,20.5322],[52.1706,20.5338],[52.1692,20.5301],[52.1698,20.5258]];
+
+const VIDEO_BASE="";
+const SEV={h:"#ef6a5e",m:"#f2b633",l:"#4cc38a"},SL={h:"Высокая",m:"Средняя",l:"Низкая"},FC=["#4cc38a","#5bb5e0","#f2b633","#ef6a5e"];
+const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+ LAB="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+ CARTO="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
+const map=L.map("map",{zoomControl:false,doubleClickZoom:false,maxZoom:20}).setView([52.171,20.529],16);
+L.control.zoom({position:"bottomright"}).addTo(map);
+const LY={sat:L.layerGroup([L.tileLayer(ESRI,{maxNativeZoom:19,maxZoom:20,attribution:"Imagery © Esri, Maxar"}),L.tileLayer(LAB,{maxNativeZoom:19,maxZoom:20,opacity:.85})]),
+ sch:L.tileLayer(CARTO,{subdomains:"abcd",maxZoom:20,attribution:"© OpenStreetMap, © CARTO"})};
+LY.sat.addTo(map);
+document.querySelectorAll(".top button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".top button").forEach(x=>x.classList.toggle("on",x==b));Object.values(LY).forEach(l=>map.removeLayer(l));LY[b.dataset.l].addTo(map)});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x==b));document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("on",i==b.dataset.t))});
+
+let O;
+const P=p=>[(p[1]-O.b)*O.kb,(p[0]-O.a)*O.ka],U=p=>[O.a+p[1]/O.ka,O.b+p[0]/O.kb];
+const rot=(p,t)=>[p[0]*Math.cos(t)-p[1]*Math.sin(t),p[0]*Math.sin(t)+p[1]*Math.cos(t)];
+function sweep(pp,sw,ov){let mn=1e9,mx=-1e9;pp.forEach(p=>{mn=Math.min(mn,p[1]);mx=Math.max(mx,p[1])});
+ const st=sw*(1-ov),w=[];let n=0,dist=0;
+ for(let y=mn+st/2;y<mx;y+=st){const xs=[];
+  for(let i=0;i<pp.length;i++){const a=pp[i],b=pp[(i+1)%pp.length];if((a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y))xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1]))}
+  xs.sort((a,b)=>a-b);
+  for(let k=0;k+1<xs.length;k+=2){const r=n%2==0;w.push(r?[xs[k],y]:[xs[k+1],y],r?[xs[k+1],y]:[xs[k],y]);n++}}
+ for(let i=1;i<w.length;i++)dist+=Math.hypot(w[i][0]-w[i-1][0],w[i][1]-w[i-1][1]);
+ return{w,n,dist}}
+function plan(poly,sw,ov,sp){const a=poly.reduce((s,q)=>s+q[0],0)/poly.length,b=poly.reduce((s,q)=>s+q[1],0)/poly.length,r=a*Math.PI/180;
+ O={a,b,ka:111132-559.8*Math.cos(2*r),kb:111412*Math.cos(r)-93.5*Math.cos(3*r)};
+ const pp=poly.map(P);let best={d:1e9,t:0};
+ for(let g=0;g<180;g+=5){const t=g*Math.PI/180,q=sweep(pp.map(p=>rot(p,t)),sw,ov);if(q.n&&q.dist<best.d)best={d:q.dist,t}}
+ const q=sweep(pp.map(p=>rot(p,best.t)),sw,ov);let ar=0;pp.forEach((p,i)=>{const z=pp[(i+1)%pp.length];ar+=p[0]*z[1]-z[0]*p[1]});
+ const wp=q.w.map(p=>rot(p,-best.t)),cum=[0];for(let i=1;i<wp.length;i++)cum[i]=cum[i-1]+Math.hypot(wp[i][0]-wp[i-1][0],wp[i][1]-wp[i-1][1]);
+ return{pp,wp,cum,n:q.n,dist:Math.round(q.dist),time:+(q.dist/sp/60).toFixed(1),area:Math.abs(ar)/2}}
+function at(f){const w=res.wp,c=res.cum,t=c[c.length-1]*f;for(let i=1;i<w.length;i++)if(c[i]>=t){const k=(t-c[i-1])/((c[i]-c[i-1])||1);return[w[i-1][0]+(w[i][0]-w[i-1][0])*k,w[i-1][1]+(w[i][1]-w[i-1][1])*k]}return w[w.length-1]}
+function inside(p,q){let c=false;for(let i=0,j=q.length-1;i<q.length;j=i++)if((q[i][1]>p[1])!=(q[j][1]>p[1])&&p[0]<(q[j][0]-q[i][0])*(p[1]-q[i][1])/(q[j][1]-q[i][1])+q[i][0])c=!c;return c}
+function place(p){const c=res.pp.reduce((s,q)=>[s[0]+q[0]/res.pp.length,s[1]+q[1]/res.pp.length],[0,0]),xs=res.pp.map(q=>q[0]),ys=res.pp.map(q=>q[1]),w=Math.max(...xs)-Math.min(...xs),h=Math.max(...ys)-Math.min(...ys);
+ const ns=p[1]-c[1]>h*.2?"Север":p[1]-c[1]<-h*.2?"Юг":"",ew=p[0]-c[0]>w*.2?"восток":p[0]-c[0]<-w*.2?"запад":"";return ns&&ew?ns+"о-"+ew:ns||(ew?ew[0].toUpperCase()+ew.slice(1):"Центр")}
+
+let poly=DEF,res,frames=[],HW=[],drawing=false,dp=[],drone,deb;
+const lg=L.layerGroup().addTo(map),dl=L.layerGroup().addTo(map);
+function recalc(fit){
+ res=plan(poly,+$("#sS").value,+$("#sO").value/100,+$("#sV").value);
+ frames=[.1,.37,.63,.9].map((f,i)=>({i,p:at(f),t:"09:"+(12+Math.round(f*30))}));
+ frames.forEach(f=>f.lbl=place(f.p));
+ const r=rng(11),SV=["h","m","l","h","m"],AR=[320,180,95,410,220];
+ HW=SV.map((s,j)=>{const c=frames[j%4].p;let p=c;for(let k=0;k<40;k++){const q=[c[0]+(r()-.5)*70,c[1]+(r()-.5)*46];if(inside(q,res.pp)){p=q;break}}return{id:"HW-0"+(j+1),s,a:AR[j],p,ll:U(p)}});
+ lg.clearLayers();dl.clearLayers();
+ const pg=L.polygon(poly,{color:"#4cc38a",weight:3,fillColor:"#4cc38a",fillOpacity:.1}).addTo(lg);
+ L.polyline(res.wp.map(U),{color:"#fff",weight:2,opacity:.9,dashArray:"6 6"}).addTo(lg);
+ frames.forEach(f=>{const[x,y]=f.p;L.polygon([[x-35,y-22],[x+35,y-22],[x+35,y+22],[x-35,y+22]].map(U),{color:FC[f.i],weight:2,dashArray:"4 3",fillOpacity:.1}).addTo(lg);
+  L.marker(U(f.p),{icon:L.divIcon({className:"",iconSize:[26,26],iconAnchor:[13,13],html:`<div class="mono" style="width:26px;height:26px;border-radius:50%;background:#0e1913;border:2.5px solid ${FC[f.i]};color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">${f.i+1}</div>`})}).on("click",()=>{const t=$("#ft"+f.i);t.classList.add("hl");setTimeout(()=>t.classList.remove("hl"),1800)}).addTo(lg)});
+ HW.forEach((h,i)=>L.marker(h.ll,{icon:L.divIcon({className:"",iconSize:[26,26],iconAnchor:[13,13],html:`<div style="width:26px;height:26px;border-radius:50%;background:${SEV[h.s]};border:2px solid #fff;color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;box-shadow:0 0 0 6px ${SEV[h.s]}44">${i+1}</div>`})})
+  .bindPopup(`<b>Очаг ${h.id}</b><br><span style="color:${SEV[h.s]}">● ${SL[h.s]} степень</span><br>Площадь: ${h.a} м²`).addTo(lg));
+ drone=L.circleMarker(U(res.wp[0]),{radius:8,color:"#fff",weight:2,fillColor:"#f2b633",fillOpacity:1}).addTo(lg);
+ if(fit)map.fitBounds(pg.getBounds(),innerWidth>900?{paddingTopLeft:[410,40],paddingBottomRight:[40,170]}:{paddingTopLeft:[20,20],paddingBottomRight:[20,260]});
+ $("#rD").textContent=res.dist;$("#rT").textContent=res.time;$("#rS").textContent=res.n;$("#rA").textContent=(res.area/1e4).toFixed(1);
+ const tot=HW.reduce((s,h)=>s+h.a,0);$("#hN").textContent=HW.length;$("#hA").textContent=tot;
+ $("#hl").innerHTML=HW.map((h,i)=>`<div class="hw" data-i="${i}"><i style="background:${SEV[h.s]}"></i><b>${h.id}</b>${SL[h.s]}<span class="mono">${h.a} м²</span></div>`).join("");
+ document.querySelectorAll(".hw").forEach(e=>e.onclick=()=>map.flyTo(HW[e.dataset.i].ll,18));
+ dock()}
+const later=()=>{clearTimeout(deb);deb=setTimeout(()=>recalc(false),160)};
+["sS","sO","sV"].forEach(id=>$("#"+id).oninput=e=>{$("#v"+id[1]).textContent=e.target.value;later()});
+(function anim(t){if(drone&&res)drone.setLatLng(U(at((t/22000)%1)));requestAnimationFrame(anim)})(0);
+
+map.on("click",e=>{if(!drawing)return;dp.push([e.latlng.lat,e.latlng.lng]);dl.clearLayers();
+ if(dp.length>2)L.polygon(dp,{color:"#4cc38a",fillOpacity:.15}).addTo(dl);dp.forEach(p=>L.circleMarker(p,{radius:6,color:"#fff",fillColor:"#4cc38a",fillOpacity:1}).addTo(dl))});
+$("#draw").onclick=()=>{drawing=true;dp=[];dl.clearLayers();$("#done").style.display="";$("#draw").classList.add("on");toast("Кликайте по углам поля")};
+$("#done").onclick=()=>{if(dp.length<3)return toast("Нужно минимум 3 точки");poly=dp;drawing=false;$("#done").style.display="none";$("#draw").classList.remove("on");recalc(true)};
+$("#cp").onclick=()=>{const t="lat,lng\n"+res.wp.map(p=>U(p).map(v=>v.toFixed(6)).join(",")).join("\n"),ok=()=>toast("Скопировано точек: "+res.wp.length);
+ const fb=()=>{const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove();ok()};navigator.clipboard?navigator.clipboard.writeText(t).then(ok,fb):fb()};
+async function find(){const v=$("#q").value.trim();if(!v)return;let la,lo;const m=v.match(/(-?\d+[.,]\d+)\s*[,; ]\s*(-?\d+[.,]\d+)/);
+ try{if(m){la=+m[1].replace(",",".");lo=+m[2].replace(",",".")}else{const r=await(await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ru&q="+encodeURIComponent(v))).json();if(!r[0])return toast("Ничего не найдено");la=+r[0].lat;lo=+r[0].lon}
+  const dy=.0017,dx=dy/Math.cos(la*Math.PI/180)*1.7;poly=[[la+dy,lo-dx],[la+dy,lo+dx],[la-dy,lo+dx],[la-dy,lo-dx]];recalc(true);weather();toast("Обведите ваше поле кнопкой «Нарисовать»")}catch(e){toast("Поиск недоступен")}}
+$("#go").onclick=find;$("#q").onkeydown=e=>{if(e.key=="Enter")find()};
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2600)}
+
+let TL=[];const Z=18,wpx=(la,lo)=>{const n=2**Z*256,s=Math.sin(la*Math.PI/180);return[(lo+180)/360*n,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]};
+function dock(){const d=$("#dock");
+ if(!d.children.length){d.innerHTML=[0,1,2,3].map(i=>`<div class="ft" id="ft${i}"><canvas width="320" height="200"></canvas><video src="${VIDEO_BASE}video_${i+2}.mp4" muted loop playsinline autoplay preload="auto"></video><b>ДЕМО</b><span></span></div>`).join("");
+  d.querySelectorAll(".ft").forEach((el,i)=>{const v=el.querySelector("video");v.onloadeddata=()=>{v.style.display="block";v.play().catch(()=>{})};v.onerror=()=>v.remove();el.onclick=()=>map.flyTo(U(frames[i].p),19)})}
+ TL=[];
+ d.querySelectorAll(".ft").forEach((el,i)=>{const f=frames[i],ll=U(f.p),[wx,wy]=wpx(...ll),tx=Math.floor((wx-200)/256),ty=Math.floor((wy-130)/256),bg=document.createElement("canvas");bg.width=bg.height=768;
+  el.querySelector("span").textContent=`КАДР ${i+1} · ${f.lbl} · ${f.t}`;
+  const T={c:el.firstChild.getContext("2d"),bg,ok:false,o:[tx*256,ty*256],w:[wx,wy],f,dets:HW.filter(h=>Math.hypot(h.p[0]-f.p[0],h.p[1]-f.p[1])<70)};TL.push(T);
+  const bc=bg.getContext("2d");for(let a=0;a<3;a++)for(let b=0;b<3;b++){const im=new Image();im.onload=()=>{bc.drawImage(im,a*256,b*256);T.ok=true};im.src=ESRI.replace("{z}",Z).replace("{y}",ty+b).replace("{x}",tx+a)}})}
+(function loop(t){t/=1000;TL.forEach(T=>{const x=T.c,px=Math.sin(t*.5)*14,py=Math.cos(t*.4)*9,sx=T.w[0]-T.o[0]-160+px,sy=T.w[1]-T.o[1]-100+py;
+ x.fillStyle="#244d2b";x.fillRect(0,0,320,200);if(T.ok)x.drawImage(T.bg,sx,sy,320,200,0,0,320,200);
+ T.dets.forEach(h=>{const[hx,hy]=wpx(...h.ll),cx=hx-T.o[0]-sx,cy=hy-T.o[1]-sy,r=Math.max(14,Math.sqrt(h.a/Math.PI)/.37),col=SEV[h.s];
+  x.strokeStyle=col;x.lineWidth=2;x.strokeRect(cx-r,cy-r,r*2,r*2);x.fillStyle=col;x.fillRect(cx-r,cy-r-14,86,14);x.fillStyle="#10150f";x.font="700 9px JetBrains Mono,monospace";x.fillText("борщевик "+(.86+h.a%7*.02).toFixed(2),cx-r+4,cy-r-4)});
+ const sc=(t*60)%230-15;x.fillStyle="rgba(76,195,138,.22)";x.fillRect(0,sc,320,3);
+ x.strokeStyle="rgba(255,255,255,.7)";x.lineWidth=1.5;[[6,6,1,1],[314,6,-1,1],[6,194,1,-1],[314,194,-1,-1]].forEach(([a,b,u,v])=>{x.beginPath();x.moveTo(a+u*12,b);x.lineTo(a,b);x.lineTo(a,b+v*12);x.stroke()});
+ x.fillStyle=Math.floor(t*2)%2?"#ef6a5e":"rgba(239,106,94,.3)";x.beginPath();x.arc(20,20,4,0,7);x.fill();x.fillStyle="#fff";x.font="700 10px JetBrains Mono,monospace";x.fillText("REC",30,24)});
+ requestAnimationFrame(loop)})(0);
+
+const WI=c=>c==0?"☀️":c<3?"⛅":c==3?"☁️":c<50?"🌫️":c<70?"🌧️":c<80?"❄️":c<90?"🌦️":"⛈️",WD=["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+async function weather(){const[la,lo]=U([0,0]);try{const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&daily=weather_code&timezone=auto&forecast_days=5`)).json(),c=d.current;
+ $("#wT").textContent=Math.round(c.temperature_2m)+"°";$("#wI").textContent=WI(c.weather_code);$("#wD").textContent="Сейчас над полем";$("#wW").textContent=Math.round(c.wind_speed_10m);$("#wH").textContent=c.relative_humidity_2m;
+ const f=$("#ft"),w=c.wind_speed_10m,p=c.precipitation;if(w>15||p>.5||c.weather_code>=60){f.className="fl bd";f.textContent="✕ Полёт не рекомендован"}else if(w>8||c.relative_humidity_2m>85){f.className="fl wr";f.textContent="⚠ Лететь можно с осторожностью"}else{f.className="fl ok";f.textContent="✓ Условия подходят для полёта"}
+ $("#wd").innerHTML=d.daily.time.map((t,i)=>`<div>${WD[new Date(t).getDay()]}<span>${WI(d.daily.weather_code[i])}</span></div>`).join("")}catch(e){$("#wD").textContent="Нет соединения"}}
+recalc(true);weather();
+</script>
+</body>
+</html>
