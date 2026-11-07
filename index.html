@@ -58,7 +58,52 @@ input[type=range]{width:100%;accent-color:var(--mint)}
 .st{font-weight:700;font-size:12px;margin:8px 0}
 #res{width:100%;border-radius:18px;display:none;margin:10px 0}
 #toast{position:fixed;left:50%;top:22px;transform:translate(-50%,-90px);background:var(--ink);color:var(--bg);padding:10px 22px;border-radius:999px;font-weight:800;z-index:2000;transition:.3s}#toast.on{transform:translate(-50%,0)}
-@media(max-width:900px){.demo{top:auto;bottom:178px;left:16px;transform:none}.panel{right:16px;width:auto;bottom:auto;max-height:50vh}.dock{left:16px;bottom:16px;overflow-x:auto}.ft{min-width:150px}.top{top:auto;bottom:170px;right:16px}}
+@media(max-width:900px){
+  html,body{min-height:100%;overscroll-behavior:none}
+  .panel{left:12px;right:12px;top:12px;bottom:auto;width:auto;max-height:48dvh;border-radius:22px}
+  .ph{padding:14px 16px 10px}
+  .logo{font-size:18px;margin-bottom:10px}
+  .tabs{padding:0 16px 8px}
+  .body{min-height:0;padding:4px 16px 16px;overscroll-behavior:contain}
+  .dock{left:12px;right:12px;bottom:12px;height:112px;padding:8px;gap:8px;overflow-x:auto;overflow-y:hidden;border-radius:20px;scroll-snap-type:x mandatory}
+  .ft{flex:0 0 42%;min-width:145px;scroll-snap-align:start}
+  .top{left:12px;right:12px;top:calc(48dvh + 20px);bottom:auto;width:max-content;max-width:calc(100% - 24px);padding:4px}
+  .top button{padding:8px 13px}
+  .demo{display:none}
+  .leaflet-bottom.leaflet-right{margin-bottom:126px}
+  .leaflet-control-zoom{margin-right:12px!important}
+  .btn{min-height:40px}
+  input[type=range]{min-height:28px}
+}
+@media(max-width:600px){
+  .panel{max-height:46dvh}
+  .top{top:calc(46dvh + 18px)}
+  .dock{height:100px}
+  .ft{flex-basis:58%;min-width:155px}
+  .cell{padding:9px 11px;border-radius:14px}
+  .cell b{font-size:20px}
+  .g2{gap:7px;margin-bottom:13px}
+  .sl{margin-bottom:10px}
+  .row{gap:7px}
+  .row .btn{flex:1 1 auto;padding:9px 12px;font-size:12px}
+  .note{font-size:11px;line-height:1.4;margin-top:10px}
+  .hw{padding:10px 11px;gap:8px;font-size:12px}
+  .wx #wT{font-size:34px!important}
+  .leaflet-bottom.leaflet-right{margin-bottom:114px}
+}
+@media(max-width:380px){
+  .search{gap:6px}
+  .search input{padding:9px 12px;font-size:12px}
+  .search .btn{padding:9px 13px}
+  .tabs button{font-size:12px;padding:8px 4px}
+  .ft{flex-basis:72%}
+}
+@media(max-height:520px) and (max-width:900px){
+  .panel{max-height:58dvh}
+  .top{top:calc(58dvh + 8px)}
+  .dock{height:76px}
+  .leaflet-bottom.leaflet-right{margin-bottom:90px}
+}
 </style>
 </head>
 <body>
@@ -101,8 +146,10 @@ const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/M
  LAB="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
  CARTO="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-const map=L.map("map",{zoomControl:false,doubleClickZoom:false,maxZoom:20}).setView([52.171,20.529],16);
+const map=L.map("map",{zoomControl:false,doubleClickZoom:false,maxZoom:20,attributionControl:false}).setView([52.171,20.529],16);
 L.control.zoom({position:"bottomright"}).addTo(map);
+map.attributionControl?.remove();
+window.addEventListener("resize",()=>map.invalidateSize());
 const LY={sat:L.layerGroup([L.tileLayer(ESRI,{maxNativeZoom:19,maxZoom:20,attribution:"Imagery © Esri, Maxar"}),L.tileLayer(LAB,{maxNativeZoom:19,maxZoom:20,opacity:.85})]),
  sch:L.tileLayer(CARTO,{subdomains:"abcd",maxZoom:20,attribution:"© OpenStreetMap, © CARTO"})};
 LY.sat.addTo(map);
